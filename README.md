@@ -22,14 +22,16 @@ Ela imprime `CIOT=<12 dígitos>` em caso de sucesso, ou `ERRO=<mensagem>` em cas
 |---|---|
 | `Program.cs` | fonte da ponte |
 | `GeradorCIOTPonte.exe.config` | runtime 4.7.2 e redirecionamentos das dependências do System.Text.Json 5 |
-| `montar.ps1` | gera os pacotes `Homologacao\` e `Producao\` e baixa o instalador do .NET |
-| `LEIA-ME.txt` | instruções para instalar no cliente (vai junto com a pasta) |
+| `montar.ps1` | gera o pacote na subpasta `GeradorCIOT\` (`Homologacao\`, `Producao\` e o instalador do .NET) |
+| `GeradorCIOT\LEIA-ME.txt` | instruções para instalar no cliente (vai junto com o pacote) |
 
-Os binários (`Homologacao\`, `Producao\`, `*.exe`, `*.dll`) não ficam no Git: o `montar.ps1` gera tudo de novo. O instalador do .NET (121 MB) também não caberia, porque o GitHub recusa arquivos acima de 100 MB.
+**A subpasta `GeradorCIOT\` é o pacote:** é ela, inteira, que vai para a pasta VTI do cliente.
+
+Os binários do pacote (`Homologacao\`, `Producao\`, `*.exe`, `*.dll`) não ficam no Git: o `montar.ps1` gera tudo de novo. O instalador do .NET (121 MB) também não caberia, porque o GitHub recusa arquivos acima de 100 MB.
 
 ## Instalação no cliente
 
-Uma pasta por ambiente, ao lado do `nucleo.exe`. **No cliente, o nome tem que ser `GeradorCIOT`**, sem o "SIG" deste repositório:
+Copiar a subpasta `GeradorCIOT\` para a pasta VTI do cliente, ao lado do `nucleo.exe`. **No cliente, o nome tem que ser `GeradorCIOT`**:
 
 ```
 C:\VTi\GeradorCIOT\Homologacao\   (DLL de homologação da ANTT)
@@ -54,7 +56,7 @@ Requisito: .NET Framework 4.7.2 ou mais novo (Windows 10 e 11 já têm).
 powershell -ExecutionPolicy Bypass -File montar.ps1 [-Destino "C:\algum\lugar"]
 ```
 
-Sem `-Destino`, monta na própria pasta do repositório. O script:
+Sem `-Destino`, monta na subpasta `GeradorCIOT\`. O script:
 1. baixa as dependências do NuGet;
 2. baixa as duas DLLs da ANTT;
 3. confere o ambiente de cada uma;
@@ -68,5 +70,5 @@ Quando a ANTT publicar uma DLL nova, basta rodar o script de novo. Se o endereç
 
 ## Do lado do Delphi
 
-- `Nucleo2\UnitCIOT.pas` (repositório VTiProjetos_RIO): tela CIOT, localiza a pasta, avisos de falta do .NET e da pasta.
+- `Nucleo2\UnitCIOT.pas` (repositório VTiProjetos_RIO, onde também fica uma cópia deste fonte em `Util\GeradorCIOT\`): tela CIOT, localiza a pasta, avisos de falta do .NET e da pasta.
 - `C:\Componentes\PefANTT\uPefANTT.pas` (fora do Git): componente `TPefANTT`, que roda a ponte (`GeradorCIOTExe`), faz a trava de ambiente e a verificação do .NET e aceita o `CIOTInformado`.

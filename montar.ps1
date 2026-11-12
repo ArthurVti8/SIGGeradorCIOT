@@ -6,8 +6,9 @@
 #
 # Uso: powershell -ExecutionPolicy Bypass -File montar.ps1 [-Destino <pasta>]
 
-# Sem -Destino, monta na própria pasta do repositório (o .gitignore ignora os binários)
-param([string]$Destino = $PSScriptRoot)
+# Sem -Destino, monta na subpasta GeradorCIOT\ (é ela que vai para a pasta VTI do cliente;
+# o .gitignore ignora os binários)
+param([string]$Destino = (Join-Path $PSScriptRoot 'GeradorCIOT'))
 
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
