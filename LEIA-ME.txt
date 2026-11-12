@@ -1,0 +1,22 @@
+﻿GERADOR DE CIOT - PASTA PARA INSTALAR NO CLIENTE
+================================================
+
+Copiar esta pasta para a PASTA VTI, ficando assim:
+
+   <pasta VTI>\GeradorCIOT\Producao\        (uso normal - produção)
+   <pasta VTI>\GeradorCIOT\Homologacao\     (só para testes)
+
+REQUISITO: .NET Framework 4.7.2 ou mais novo
+--------------------------------------------
+Windows 10 atualizado e Windows 11 já têm. Se a máquina não tiver, ao
+enviar o CIOT o Núcleo avisa e pergunta se quer informar um código de
+CIOT. O Núcleo NÃO instala o .NET sozinho. As saídas são:
+
+1) Instalar o .NET: responder "Não" no aviso e executar
+   "Instalar .NET Framework 4.8.exe" (desta pasta) como administrador.
+   É o instalador oficial da Microsoft e funciona do Windows 7 SP1 ao
+   Windows 11. Pode pedir para reiniciar. Depois, enviar o CIOT de novo.
+
+2) Não instalar: gerar o código do CIOT no "Gerador de CIOT" da ANTT
+   (programa com tela, baixado do site "CIOT para Todos", que não precisa
+   do .NET), responder "Sim" no aviso e digitar o código de 12 dígitos.

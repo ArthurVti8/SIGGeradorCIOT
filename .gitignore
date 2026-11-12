@@ -1,0 +1,8 @@
+# Pacotes gerados pelo montar.ps1 (binários: ponte compilada, DLL da ANTT,
+# dependências do NuGet e instalador do .NET)
+Homologacao/
+Producao/
+dist/
+*.exe
+*.dll
+*.pdb
