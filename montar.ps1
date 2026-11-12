@@ -4,20 +4,28 @@
 # Cada pasta: GeradorCIOTPonte.exe + .config + GeradorCIOTShared.dll (ANTT) + dependências (NuGet).
 # Nada é executado contra a ANTT aqui: só download e compilação.
 #
-# Uso: powershell -ExecutionPolicy Bypass -File montar.ps1 [-Destino <pasta>]
+# Uso: duplo clique no montar.bat (mostra o andamento e espera um Enter no fim), ou
+#      powershell -ExecutionPolicy Bypass -File montar.ps1 [-Destino <pasta>]
 
 # Sem -Destino, monta na subpasta GeradorCIOT\ (é ela que vai para a pasta VTI do cliente;
 # o .gitignore ignora os binários)
 param([string]$Destino = (Join-Path $PSScriptRoot 'GeradorCIOT'))
 
 $ErrorActionPreference = 'Stop'
+# No PowerShell 5.1 a barra de progresso deixa downloads grandes muito lentos
+# (o instalador do .NET tem 121 MB)
+$ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $trabalho = Join-Path $env:TEMP ('GeradorCIOTPonte_' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force "$trabalho\pkg", "$trabalho\lib", "$trabalho\antt" | Out-Null
 
+# A pasta de trabalho é apagada no fim, mesmo se der erro
+try {
+
 # 1. Dependências do System.Text.Json 5.0 para .NET Framework (NuGet)
+Write-Output '1/6 Baixando as dependências do NuGet...'
 $pacotes = @(
   @('System.Text.Json', '5.0.0', 'net461'),
   @('Microsoft.Bcl.AsyncInterfaces', '5.0.0', 'net461'),
@@ -42,6 +50,7 @@ foreach ($p in $pacotes) {
 }
 
 # 2. DLLs oficiais da ANTT (página "Documentos Técnicos" do CIOT para Todos)
+Write-Output '2/6 Baixando as DLLs oficiais da ANTT...'
 $antt = @{
   'Homologacao' = 'https://appservices-hml.antt.gov.br/pefServices/Downloads/GeradorCIOT_DLL.zip'
   'Producao'    = 'https://appservices.antt.gov.br/pefServices/Downloads/GeradorCIOT_DLL.zip'
@@ -53,6 +62,7 @@ foreach ($amb in $antt.Keys) {
 }
 
 # 3. Conferência do ambiente de cada DLL (mesma regra da trava do uPefANTT)
+Write-Output '3/6 Conferindo o ambiente de cada DLL...'
 function ContemUTF16([string]$arquivo, [string]$texto) {
   $b = [BitConverter]::ToString([IO.File]::ReadAllBytes($arquivo))
   return $b.Contains([BitConverter]::ToString([Text.Encoding]::Unicode.GetBytes($texto)))
@@ -65,13 +75,15 @@ if (-not ((ContemUTF16 $dllHml $urlHml) -and -not (ContemUTF16 $dllHml $marcaPrd
 if (-not ((ContemUTF16 $dllPrd $marcaPrd) -and -not (ContemUTF16 $dllPrd $urlHml))) { throw 'A DLL baixada de produção não tem a marca de produção esperada (a ANTT pode ter mudado o endereço; revisar a trava do uPefANTT).' }
 
 # 4. Compila a ponte (csc do .NET Framework do Windows)
-$csc = 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe'
+Write-Output '4/6 Compilando a ponte...'
+$csc ='C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe'
 $exe = "$trabalho\GeradorCIOTPonte.exe"
 & $csc /nologo /target:exe /platform:anycpu /optimize+ /out:$exe /reference:$dllHml `
   /reference:C:\Windows\Microsoft.NET\Framework\v4.0.30319\netstandard.dll (Join-Path $PSScriptRoot 'Program.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar o GeradorCIOTPonte.exe' }
 
 # 5. Monta as pastas
+Write-Output "5/6 Montando as pastas em $Destino ..."
 foreach ($amb in @('Homologacao', 'Producao')) {
   $pasta = Join-Path $Destino $amb
   New-Item -ItemType Directory -Force $pasta | Out-Null
@@ -84,13 +96,27 @@ foreach ($amb in @('Homologacao', 'Producao')) {
 
 # 6. Instalador offline do .NET Framework 4.8 (para máquinas sem o 4.7.2+),
 #    na raiz do pacote. Confere a assinatura da Microsoft antes de copiar.
-$net48 = "$trabalho\ndp48-x86-x64-allos-enu.exe"
-Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2088631' -OutFile $net48 -UseBasicParsing
-$assinatura = Get-AuthenticodeSignature $net48
-if ($assinatura.Status -ne 'Valid' -or $assinatura.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
-  throw 'O instalador do .NET baixado não tem assinatura válida da Microsoft.'
+#    Se já estiver na pasta com a assinatura válida, não baixa de novo.
+$instalador = Join-Path $Destino 'Instalar .NET Framework 4.8.exe'
+function InstaladorValido([string]$arquivo) {
+  if (-not (Test-Path $arquivo)) { return $false }
+  $a = Get-AuthenticodeSignature $arquivo
+  return ($a.Status -eq 'Valid' -and $a.SignerCertificate.Subject -match 'O=Microsoft Corporation' -and
+          (Get-Item $arquivo).VersionInfo.ProductVersion -like '4.8.*')
 }
-Copy-Item $net48 (Join-Path $Destino 'Instalar .NET Framework 4.8.exe') -Force
-Write-Output "Instalador do .NET: $(Join-Path $Destino 'Instalar .NET Framework 4.8.exe')"
+if (InstaladorValido $instalador) {
+  Write-Output '6/6 Instalador do .NET Framework 4.8 já está na pasta (assinatura válida).'
+} else {
+  Write-Output '6/6 Baixando o instalador do .NET Framework 4.8 (121 MB)...'
+  $net48 = "$trabalho\ndp48-x86-x64-allos-enu.exe"
+  Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2088631' -OutFile $net48 -UseBasicParsing
+  if (-not (InstaladorValido $net48)) {
+    throw 'O instalador do .NET baixado não tem assinatura válida da Microsoft.'
+  }
+  Copy-Item $net48 $instalador -Force
+}
+Write-Output "Instalador do .NET: $instalador"
 
-Remove-Item $trabalho -Recurse -Force
+} finally {
+  Remove-Item $trabalho -Recurse -Force -ErrorAction SilentlyContinue
+}

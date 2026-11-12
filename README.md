@@ -22,6 +22,7 @@ Ela imprime `CIOT=<12 dígitos>` em caso de sucesso, ou `ERRO=<mensagem>` em cas
 |---|---|
 | `Program.cs` | fonte da ponte |
 | `GeradorCIOTPonte.exe.config` | runtime 4.7.2 e redirecionamentos das dependências do System.Text.Json 5 |
+| `montar.bat` | roda o `montar.ps1` com duplo clique, mostra cada etapa e espera um Enter no fim |
 | `montar.ps1` | gera o pacote na subpasta `GeradorCIOT\` (`Homologacao\`, `Producao\` e o instalador do .NET) |
 | `GeradorCIOT\LEIA-ME.txt` | instruções para instalar no cliente (vai junto com o pacote) |
 
@@ -52,6 +53,10 @@ Requisito: .NET Framework 4.7.2 ou mais novo (Windows 10 e 11 já têm).
 
 ## Como montar os pacotes
 
+**Jeito mais fácil:** duplo clique no `montar.bat`. Ele mostra cada etapa e, no fim, diz se o pacote foi montado ou mostra o erro, esperando um Enter. Não dê duplo clique no `montar.ps1`: o Windows só abre o arquivo no Bloco de Notas.
+
+Pela linha de comando:
+
 ```
 powershell -ExecutionPolicy Bypass -File montar.ps1 [-Destino "C:\algum\lugar"]
 ```
@@ -62,7 +67,9 @@ Sem `-Destino`, monta na subpasta `GeradorCIOT\`. O script:
 3. confere o ambiente de cada uma;
 4. compila a ponte com o `csc.exe` do Windows;
 5. monta `Homologacao\` e `Producao\`;
-6. baixa o instalador offline do .NET Framework 4.8 e confere a assinatura da Microsoft.
+6. baixa o instalador offline do .NET Framework 4.8 e confere a assinatura da Microsoft. Se o instalador já estiver na pasta com a assinatura válida, não baixa de novo.
+
+Na primeira vez leva cerca de 1 minuto e meio, por causa do instalador do .NET. Nas seguintes, poucos segundos.
 
 Ele não chama nenhum serviço da ANTT.
 
